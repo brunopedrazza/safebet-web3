@@ -35,6 +35,8 @@ contract SafeBet is AccessControl, ISafeBet, Stoppable {
 
   IERC20 public token;
 
+  bool private _hasReferee;
+
   /**
    * @dev Function called only when the smart contract is deployed.
    *
@@ -48,7 +50,39 @@ contract SafeBet is AccessControl, ISafeBet, Stoppable {
   constructor(address tokenAddress) {
     _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     token = IERC20(tokenAddress);
+    _hasReferee = false;
   }
+
+  /**
+   * @dev Returns true if the contract has some account with referee role, and false otherwise.
+   */
+  function hasReferee() public view virtual returns (bool) {
+      return _hasReferee;
+  }
+
+  /**
+     * @dev Modifier to make a function callable only when the contract does not have a referee.
+     *
+     * Requirements:
+     *
+     * - The contract must not have an account with referee role
+     */
+    modifier whenNotHasReferee() {
+        require(!hasReferee(), "has referee");
+        _;
+    }
+
+    /**
+     * @dev Modifier to make a function callable only when the contract has a referee.
+     *
+     * Requirements:
+     *
+     * - The contract must have a referee.
+     */
+    modifier whenHasReferee() {
+        require(hasReferee(), "does not has referee");
+        _;
+    }
 
   /**
    * @dev Modifier which verifies if the caller is an owner,
@@ -142,9 +176,11 @@ contract SafeBet is AccessControl, ISafeBet, Stoppable {
    * @dev This function add an address in the `REFEREE_ROLE`.
    *
    * Only owner can call it.
+   * The contract must not have a referee.
    *
    * Can not be called if the contract is paused.
    * This role can not be revoked by the owner.
+   * Only one account can have a referee role.
    *
    * Parameters: address of referee to be added
    *
@@ -154,11 +190,13 @@ contract SafeBet is AccessControl, ISafeBet, Stoppable {
   function addReferee(address account)
     external
     onlyOwner
-    whenNotPaused
+    whenNotHasReferee
+    whenNotStopped
     returns (bool)
   {
     require(!hasRole(ADMIN_ROLE, account), "is admin");
     grantRole(REFEREE_ROLE, account);
+    _hasReferee = true;
     return true;
   }
 
@@ -217,9 +255,13 @@ contract SafeBet is AccessControl, ISafeBet, Stoppable {
    * Requirements:
    *
    * - The contract must not be stopped.
+   * - The contract must have a referee.
    *
    */
-  function stop() external onlyOwner {
+  function stop() external 
+    onlyOwner
+    whenHasReferee
+  {
     /**
      * @dev See {Stoppable-_stop}.
      *
