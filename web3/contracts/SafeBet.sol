@@ -9,8 +9,8 @@ pragma solidity ^0.8.0;
 // Pausable.sol :       https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.1.0/contracts/security/Pausable.sol
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
 import "./ISafeBet.sol";
+import "./Stoppable.sol";
 
 struct BetOption {
     string name;
@@ -26,7 +26,7 @@ struct BetOption {
  * (https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.1.0/)
  *
  */
-contract SafeBet is AccessControl, ISafeBet, Pausable {
+contract SafeBet is AccessControl, ISafeBet, Stoppable {
   address private constant ZERO_ADDRESS = address(0);
   bytes32 private constant NULL_HASH = bytes32(0);
 
@@ -163,52 +163,6 @@ contract SafeBet is AccessControl, ISafeBet, Pausable {
   }
 
   /**
-   * @dev This function add an address in the `ADMIN_ROLE`.
-   *
-   * Only owner can call it.
-   *
-   * Can not be called if the contract is paused.
-   *
-   * Parameters: address of admin to be added
-   *
-   * Returns: bool - true if it is sucessful
-   *
-   */
-  function addAdmin(address account)
-    external
-    onlyOwner
-    whenNotPaused
-    returns (bool)
-  {
-    require(!hasRole(REFEREE_ROLE, account), "is referee");
-    grantRole(ADMIN_ROLE, account);
-    return true;
-  }
-
-  /**
-   * @dev This function excludes an address in the `ADMIN_ROLE`.
-   *
-   * Only owner can call it.
-   *
-   * Can not be called if the contract is paused.
-   *
-   * Parameters: address of admin to be excluded
-   *
-   * Returns: bool - true if it is sucessful
-   *
-   */
-  function delAdmin(address account)
-    external
-    onlyOwner
-    whenNotPaused
-    returns (bool)
-  {
-    //Can be called only by the account defined in constructor: DEFAULT_ADMIN_ROLE
-    revokeRole(ADMIN_ROLE, account);
-    return true;
-  }
-
-  /**
    * @dev This function allows a user to renounce a role
    *
    * Parameters: bytes32 role, address account
@@ -252,7 +206,7 @@ contract SafeBet is AccessControl, ISafeBet, Pausable {
   }
 
   /**
-   * @dev This function pauses the contract.
+   * @dev This function stops the contract.
    *
    * Only owner can call it.
    *
@@ -262,41 +216,17 @@ contract SafeBet is AccessControl, ISafeBet, Pausable {
    *
    * Requirements:
    *
-   * - The contract must not be paused.
+   * - The contract must not be stopped.
    *
    */
-  function pause() external onlyOwner {
+  function stop() external onlyOwner {
     /**
-     * @dev See {Pausable-_pause}.
+     * @dev See {Stoppable-_stop}.
      *
      * Requirements:
      *
-     * - The contract must not be paused.
+     * - The contract must not be stopped.
      */
-    _pause();
-  }
-
-  /**
-   * @dev This function unpauses the contract.
-   *
-   * Only owner can call it.
-   *
-   * Parameters: none
-   *
-   * Returns: none
-   *
-   * Requirements:
-   *
-   * - The contract must be paused.
-   */
-  function unpause() external onlyOwner {
-    /**
-     * @dev See {Pausable-_unpause}.
-     *
-     * Requirements:
-     *
-     * - The contract must be paused.
-     */
-    _unpause();
+    _stop();
   }
 }
