@@ -12,11 +12,6 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./ISafeBet.sol";
 import "./Stoppable.sol";
 
-struct BetOption {
-    string name;
-    uint32 id;
-}
-
 /**
  * @dev SafeBet
  *
@@ -35,7 +30,10 @@ contract SafeBet is AccessControl, ISafeBet, Stoppable {
 
   IERC20 public token;
 
+  BetOption[] public betOptions;
   bool private _hasReferee;
+
+  mapping(string => uint256) private betOptionIndex;
 
   /**
    * @dev Function called only when the smart contract is deployed.
@@ -61,28 +59,28 @@ contract SafeBet is AccessControl, ISafeBet, Stoppable {
   }
 
   /**
-     * @dev Modifier to make a function callable only when the contract does not have a referee.
-     *
-     * Requirements:
-     *
-     * - The contract must not have an account with referee role
-     */
-    modifier whenNotHasReferee() {
-        require(!hasReferee(), "has referee");
-        _;
-    }
+   * @dev Modifier to make a function callable only when the contract does not have a referee.
+   *
+   * Requirements:
+   *
+   * - The contract must not have an account with referee role
+   */
+  modifier whenNotHasReferee() {
+      require(!hasReferee(), "has referee");
+      _;
+  }
 
-    /**
-     * @dev Modifier to make a function callable only when the contract has a referee.
-     *
-     * Requirements:
-     *
-     * - The contract must have a referee.
-     */
-    modifier whenHasReferee() {
-        require(hasReferee(), "does not has referee");
-        _;
-    }
+  /**
+   * @dev Modifier to make a function callable only when the contract has a referee.
+   *
+   * Requirements:
+   *
+   * - The contract must have a referee.
+   */
+  modifier whenHasReferee() {
+      require(hasReferee(), "does not has referee");
+      _;
+  }
 
   /**
    * @dev Modifier which verifies if the caller is an owner,
@@ -198,6 +196,56 @@ contract SafeBet is AccessControl, ISafeBet, Stoppable {
     grantRole(REFEREE_ROLE, account);
     _hasReferee = true;
     return true;
+  }
+
+  /**
+   * @dev Returns if a bet option is in the list of bet options.
+   *
+   * Parameters: string name of bet option
+   *
+   * Returns: boolean true if it is in the list
+   *
+   */
+  function existsBetOption(string memory name)
+    public
+    view
+    override
+    returns (bool)
+  {
+    if (betOptionIndex[name] == 0) return false;
+    else return true;
+  }
+
+  /**
+   * @dev List of bet options that are available to bet.
+   *
+   * Parameters: none
+   *
+   * Returns: an array of bet options
+   *
+   */
+  function listBetOptions() 
+    external 
+    view 
+    override 
+    returns (BetOption[] memory) 
+  {
+    return betOptions;
+  }
+
+  function addBetOption(
+    string calldata name
+  ) external override onlyOwner whenNotStopped returns (uint256) {
+    require(!existsBetOption(name), "bet options already exists");
+
+    uint256 len = betOptions.length;
+    BetOption memory b;
+    b.name = name;
+    b.id = len;
+    betOptions.push(b);
+    uint256 index = betOptions.length;
+    betOptionIndex[name] = index;
+    return (index);
   }
 
   /**
