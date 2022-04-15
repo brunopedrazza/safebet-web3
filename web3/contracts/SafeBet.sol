@@ -24,9 +24,23 @@ import "./Stoppable.sol";
 contract SafeBet is AccessControl, ISafeBet, Stoppable {
   address private constant ZERO_ADDRESS = address(0);
   bytes32 private constant NULL_HASH = bytes32(0);
-
   bytes32 public constant REFEREE_ROLE = keccak256("REFEREE_ROLE");
   bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+
+  /**
+   * @dev DECIMALPERCENT is the representation of 100% using (2) decimal places
+   * 100.00 = percentage accuracy (2) to 100%
+   */
+  uint256 public constant DECIMALPERCENT = 10000;
+  
+  /**
+   * @dev Fee percentage charged by the safebet owner.
+   *
+   * For each amount received in the contract, a fee percentage is discounted.
+   * This function returns this fee percentage.
+   * Include 2 decimal places.
+   */
+  uint256 public feePercentageOwner;
 
   IERC20 public token;
 
@@ -45,9 +59,10 @@ contract SafeBet is AccessControl, ISafeBet, Stoppable {
    * - the transaction's sender will be added in the DEFAULT_ADMIN_ROLE.
    * - the token will be defined by the parameter tokenAddress
    */
-  constructor(address tokenAddress) {
+  constructor(address tokenAddress, uint x) {
     _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     token = IERC20(tokenAddress);
+    feePercentageBridge = x;
     _hasReferee = false;
   }
 
