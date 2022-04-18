@@ -3,6 +3,6 @@ const ZaoTokenAddress = "0x82884B8377BB6487ff018a0385D0D7a579bb8000"
 
 module.exports = async function (deployer, network, accounts) {
   // Deploy SafeBet
-  await deployer.deploy(SafeBet, ZaoTokenAddress)
+  await deployer.deploy(SafeBet, ZaoTokenAddress, 1000)
   const safeBet = await SafeBet.deployed()
 }
