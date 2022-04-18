@@ -9,11 +9,18 @@ interface ISafeBet {
         string name;
         uint256 id;
     }
+    struct UserBet {
+        address user;
+        uint256 betOptionId;
+        uint256 amount;
+    }
     function version() external pure returns (string memory);
     function getTokenBalance() external view returns (uint256);
 
+    function makeBet(uint256 amount, uint256 betOptionId) external returns (bool);
     function addBetOption(string calldata name) external returns (uint256);
 
-    function existsBetOption(string calldata name) external view returns (bool);
+    function existsBetOptionName(string calldata name) external view returns (bool);
+    function existsBetOptionId(uint256 id) external view returns (bool);
     function listBetOptions() external view returns (BetOption[] memory);
 }

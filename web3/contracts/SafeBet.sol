@@ -45,9 +45,13 @@ contract SafeBet is AccessControl, ISafeBet, Stoppable {
   IERC20 public token;
 
   BetOption[] public betOptions;
+
+  UserBet[] private _userBets;
   bool private _hasReferee;
+  uint256 private _totalBetAmount;
 
   mapping(string => uint256) private betOptionIndex;
+  mapping(uint256 => uint256) private betOptionTotalAmount;
 
   /**
    * @dev Function called only when the smart contract is deployed.
@@ -59,11 +63,12 @@ contract SafeBet is AccessControl, ISafeBet, Stoppable {
    * - the transaction's sender will be added in the DEFAULT_ADMIN_ROLE.
    * - the token will be defined by the parameter tokenAddress
    */
-  constructor(address tokenAddress, uint x) {
+  constructor(address tokenAddress, uint256 feePercentageOwnerParam) {
     _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
     token = IERC20(tokenAddress);
-    feePercentageBridge = x;
+    feePercentageOwner = feePercentageOwnerParam;
     _hasReferee = false;
+    _totalBetAmount = 0;
   }
 
   /**
@@ -173,6 +178,27 @@ contract SafeBet is AccessControl, ISafeBet, Stoppable {
     return (keccak256(abi.encodePacked((a))) == keccak256(abi.encodePacked((b))));
   }
 
+  function makeBet(
+    uint256 amount,
+    uint256 betOptionId
+  ) external override whenNotStopped returns (bool) {
+    require(existsBetOptionId(betOptionId), "bet option does not exist");
+    require(amount > 0, "bet amount must be greater than 0");
+
+    UserBet memory b;
+    b.user = _msgSender();
+    b.betOptionId = betOptionId;
+    b.amount = amount;
+    _userBets.push(b);
+
+    _totalBetAmount += amount;
+    betOptionTotalAmount[betOptionId] += amount;
+
+    //Transfer the tokens on IERC20, they should be already approved for the SafeBet Address to use them
+    token.transferFrom(_msgSender(), address(this), amount);
+    return true;
+  }
+
   /**
    * @dev Returns token balance.
    *
@@ -221,7 +247,7 @@ contract SafeBet is AccessControl, ISafeBet, Stoppable {
    * Returns: boolean true if it is in the list
    *
    */
-  function existsBetOption(string memory name)
+  function existsBetOptionName(string memory name)
     public
     view
     override
@@ -229,6 +255,28 @@ contract SafeBet is AccessControl, ISafeBet, Stoppable {
   {
     if (betOptionIndex[name] == 0) return false;
     else return true;
+  }
+
+  /**
+   * @dev Returns if a bet option is in the list of bet options.
+   *
+   * Parameters: string name of bet option
+   *
+   * Returns: boolean true if it is in the list
+   *
+   */
+  function existsBetOptionId(uint256 id)
+    public
+    view
+    override
+    returns (bool)
+  {
+    for (uint p = 0; p < betOptions.length; p++) {
+      if (betOptions[p].id == id) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -251,7 +299,7 @@ contract SafeBet is AccessControl, ISafeBet, Stoppable {
   function addBetOption(
     string calldata name
   ) external override onlyOwner whenNotStopped returns (uint256) {
-    require(!existsBetOption(name), "bet options already exists");
+    require(!existsBetOptionName(name), "bet options already exists");
 
     uint256 len = betOptions.length;
     BetOption memory b;
@@ -260,6 +308,7 @@ contract SafeBet is AccessControl, ISafeBet, Stoppable {
     betOptions.push(b);
     uint256 index = betOptions.length;
     betOptionIndex[name] = index;
+    betOptionTotalAmount[b.id] = 0;
     return (index);
   }
 
